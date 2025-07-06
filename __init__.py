@@ -9,11 +9,16 @@ ComfyUI Save Image Pro - 专业级图像保存插件
 @title: ComfyUI Save Image Pro
 @nickname: Save Image Pro
 @description: 专业级图像保存插件，支持多格式、自定义命名和高级功能
-@version: 3.0.0 (重构版本)
+@version: latest
 @repository: https://github.com/weekii/comfyui-save-image-pro
 """
 
-from .save_image_extended import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
+from .save_image_advanced import NODE_CLASS_MAPPINGS as ADVANCED_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as ADVANCED_DISPLAY_MAPPINGS
+from .save_image_simple import NODE_CLASS_MAPPINGS as SIMPLE_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as SIMPLE_DISPLAY_MAPPINGS
+
+# 合并节点映射
+NODE_CLASS_MAPPINGS = {**ADVANCED_MAPPINGS, **SIMPLE_MAPPINGS}
+NODE_DISPLAY_NAME_MAPPINGS = {**ADVANCED_DISPLAY_MAPPINGS, **SIMPLE_DISPLAY_MAPPINGS}
 
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
 

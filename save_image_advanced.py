@@ -1,9 +1,9 @@
 """
-Save Image Extended - ComfyUI插件 (重构版本)
+ComfyUI Save Image Pro - ComfyUI插件 (重构版本)
 
 使用模块化架构重构的图像保存插件，支持多种格式和自定义配置。
 
-@version: 3.0
+@version: latest
 @author: AudioscavengeR (重构版本)
 """
 
@@ -23,7 +23,7 @@ from .core import (
 )
 
 # 版本信息
-VERSION = "3.0"
+VERSION = "latest"
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -39,16 +39,16 @@ def check_optional_dependencies():
     try:
         import pillow_avif
         dependencies['avif'] = True
-        logger.info("AVIF支持已启用")
+        logger.info("AVIF support enabled")
     except ImportError:
-        logger.info("AVIF不可用，如需支持请安装: pip install pillow-avif-plugin")
+        logger.info("AVIF not available. To enable: pip install pillow-avif-plugin")
     
     try:
         from jxlpy import JXLImagePlugin
         dependencies['jxl'] = True
-        logger.info("JXL支持已启用")
+        logger.info("JXL support enabled")
     except ImportError:
-        logger.info("JXL不可用，如需支持请安装: pip install jxlpy")
+        logger.info("JXL not available. To enable: pip install jxlpy")
     
     return dependencies
 
@@ -56,10 +56,10 @@ def check_optional_dependencies():
 SUPPORTED_FORMATS = check_optional_dependencies()
 
 
-class SaveImageExtended:
+class SaveImageAdvanced:
     """
-    Save Image Extended - 重构版本
-    
+    ComfyUI Save Image Pro - 重构版本
+
     使用模块化架构的图像保存节点，支持多种格式和自定义配置。
     """
     
@@ -68,7 +68,7 @@ class SaveImageExtended:
     OUTPUT_NODE = True
     CATEGORY = 'image'
     DESCRIPTION = """
-### Save Image Extended v3.0 (重构版本)
+### ComfyUI Save Image Pro
 
 **功能特性:**
 - 支持多种图像格式 (PNG, WebP, JPEG, AVIF, JXL, TIFF, GIF, BMP)
@@ -103,7 +103,7 @@ class SaveImageExtended:
             level=logging.INFO,
             format='[%(name)s] %(levelname)s: %(message)s'
         )
-        logger.info(f"Save Image Extended v{VERSION} 已初始化")
+        logger.info("ComfyUI Save Image Pro initialized")
     
     @classmethod
     def INPUT_TYPES(cls):
@@ -177,8 +177,8 @@ class SaveImageExtended:
             # 验证配置
             validation = self.config_manager.validate_config(config)
             if not validation.valid:
-                logger.error(f"配置验证失败: {validation.errors}")
-                raise ValueError(f"配置错误: {'; '.join(validation.errors)}")
+                logger.error(f"Configuration validation failed: {validation.errors}")
+                raise ValueError(f"Configuration error: {'; '.join(validation.errors)}")
             
             # 创建图像保存器
             self.image_saver = ImageSaver(config, self.output_dir)
@@ -188,21 +188,21 @@ class SaveImageExtended:
                 images, prompt or {}, extra_pnginfo, positive_text, negative_text
             )
             
-            logger.info(f"成功保存 {len(results)} 张图像")
+            logger.info(f"Successfully saved {len(results)} images")
             
             return {"ui": {"images": results}}
         
         except Exception as e:
-            logger.error(f"保存图像时发生错误: {e}")
+            logger.error(f"Error occurred while saving images: {e}")
             # 返回空结果而不是抛出异常，避免中断ComfyUI工作流
             return {"ui": {"images": []}}
 
 
 # ComfyUI节点映射
 NODE_CLASS_MAPPINGS = {
-    "SaveImageExtended": SaveImageExtended,
+    "SaveImageAdvanced": SaveImageAdvanced,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SaveImageExtended": "Save Image Extended (v3.0)",
+    "SaveImageAdvanced": "comfyui-save-image-pro (Advanced)",
 }

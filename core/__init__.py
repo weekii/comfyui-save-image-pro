@@ -1,5 +1,5 @@
 """
-Save Image Extended - 核心模块
+ComfyUI Save Image Pro - 核心模块
 
 这个包包含了重构后的核心组件，遵循SOLID原则设计。
 

@@ -60,8 +60,8 @@ class MetadataHandler:
         
         # 添加插件信息
         metadata['generator'] = {
-            'name': 'Save Image Extended',
-            'version': '3.0'
+            'name': 'ComfyUI Save Image Pro',
+            'version': 'latest'
         }
         
         # 缓存结果

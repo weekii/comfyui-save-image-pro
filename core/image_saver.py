@@ -78,7 +78,8 @@ class ImageSaver:
         Returns:
             保存结果列表
         """
-        if not images:
+        # 检查图像列表是否为空（避免对张量进行布尔判断）
+        if images is None or len(images) == 0:
             return []
         
         timestamp = datetime.now()
@@ -155,11 +156,18 @@ class ImageSaver:
     def _tensor_to_pil(self, tensor) -> Image.Image:
         """将张量转换为PIL图像"""
         import numpy as np
-        
+
+        # 确保张量在CPU上
+        tensor = tensor.cpu()
+
+        # 如果张量有批次维度，取第一个
+        if len(tensor.shape) > 3:
+            tensor = tensor[0]
+
         # 转换为numpy数组
-        i = 255. * tensor.cpu().numpy()
+        i = 255. * tensor.numpy()
         array = np.clip(i, 0, 255).astype(np.uint8)
-        
+
         # 创建PIL图像
         return Image.fromarray(array)
     
