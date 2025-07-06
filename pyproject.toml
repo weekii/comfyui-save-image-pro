@@ -1,15 +1,17 @@
 [project]
-name = "save-image-extended-comfyui"
-description = "Save as AVIF, WebP, JPEG, customize the folder, sub-folders, and filenames of your images!"
-version = "2.64"
-license = "AGPL3.0"
+name = "comfyui-save-image-pro"
+description = "专业级 ComfyUI 图像保存插件，支持多格式、自定义命名和高级功能"
+version = "3.0.0"
+license = "GPL-3.0"
 dependencies = ["piexif", "pillow", "pillow-avif-plugin"]
 
 [project.urls]
-Repository = "https://github.com/audioscavenger/save-image-extended-comfyui"
+Repository = "https://github.com/weekii/comfyui-save-image-pro"
+Documentation = "https://github.com/weekii/comfyui-save-image-pro/blob/main/docs/用户手册.md"
+Issues = "https://github.com/weekii/comfyui-save-image-pro/issues"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = "audioscavenger"
-DisplayName = "save-image-extended-comfyui"
+PublisherId = "weekii"
+DisplayName = "ComfyUI Save Image Pro"
 Icon = ""

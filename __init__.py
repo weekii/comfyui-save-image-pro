@@ -1,30 +1,19 @@
-# Customize the folder, sub-folders, and filenames of your images! 
-# Save data about the generated job (sampler, prompts, models) as entries in a `json` (text) file, in each folder.
-# Use the values of ANY node's widget, by simply adding its badge number in the form _id.widget_name_: 
-# Oh btw... also saves your output as **WebP** or **JPEG**... And yes the prompt is included :) ComfyUI can load it but a PR approval is needed.
-
 """
-@author: AudioscavengeR
-@title: Save Image Extended
-@nickname: Save Image Extended
-@description: 1 custom node to save your pictures in various folders and formats.
-"""
+ComfyUI Save Image Pro - 专业级图像保存插件
 
+高性能、模块化的 ComfyUI 图像保存插件，支持多种格式、
+自定义命名和高级功能。采用现代化架构设计，提供卓越的
+性能和可扩展性。
+
+@author: weekii
+@title: ComfyUI Save Image Pro
+@nickname: Save Image Pro
+@description: 专业级图像保存插件，支持多格式、自定义命名和高级功能
+@version: 3.0.0 (重构版本)
+@repository: https://github.com/weekii/comfyui-save-image-pro
+"""
 
 from .save_image_extended import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-WEB_DIRECTORY = "./web"
-
-__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', "WEB_DIRECTORY"]
-
-from aiohttp import web
-from server import PromptServer
-from pathlib import Path
-
-if hasattr(PromptServer, "instance"):
-  # NOTE: we add an extra static path to avoid comfy mechanism
-  # that loads every script in web.
-  PromptServer.instance.app.add_routes(
-      [web.static("/save_image_extended", (Path(__file__).parent.absolute() / "assets").as_posix())]
-  )
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
 
