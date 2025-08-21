@@ -76,6 +76,7 @@ class SaveImageSimple:
 **基础功能:**
 - 支持多种图像格式 (PNG, WebP, JPEG, AVIF, JXL, TIFF, GIF, BMP)
 - 自定义文件名前缀
+- 自定义文件夹前缀
 - 质量控制
 - 作业数据导出
 - 图像预览
@@ -118,6 +119,7 @@ class SaveImageSimple:
             "required": {
                 "images": ("IMAGE", ),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "foldername_prefix": ("STRING", {"default": ""}),
                 "output_format": (output_formats, {"default": ".webp"}),
                 "quality": ("INT", {"default": 75, "min": 1, "max": 100, "step": 1}),
                 "job_data_per_image": ("BOOLEAN", {"default": False}),
@@ -129,9 +131,9 @@ class SaveImageSimple:
             }
         }
     
-    def save_images(self, images, filename_prefix="ComfyUI", output_format=".webp",
-                   quality=75, job_data_per_image=False, image_preview=True,
-                   prompt=None, extra_pnginfo=None):
+    def save_images(self, images, filename_prefix="ComfyUI", foldername_prefix="",
+                   output_format=".webp", quality=75, job_data_per_image=False,
+                   image_preview=True, prompt=None, extra_pnginfo=None):
         """
         保存图像的主要方法 - 简化版
         """
@@ -140,7 +142,7 @@ class SaveImageSimple:
             config = SaveConfig(
                 filename_prefix=filename_prefix,
                 filename_keys="",  # 简化版不使用复杂的文件名键
-                foldername_prefix="",  # 简化版不使用文件夹前缀
+                foldername_prefix=foldername_prefix,  # 使用用户输入的文件夹前缀
                 foldername_keys="",  # 简化版不使用文件夹键
                 delimiter="-",
                 output_format=output_format,
