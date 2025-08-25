@@ -122,7 +122,7 @@ class SaveImageSimple:
                 "foldername_prefix": ("STRING", {"default": ""}),
                 "output_format": (output_formats, {"default": ".webp"}),
                 "quality": ("INT", {"default": 75, "min": 1, "max": 100, "step": 1}),
-                "job_data_per_image": ("BOOLEAN", {"default": False}),
+                "save_image_metadata": ("BOOLEAN", {"default": True}),
                 "image_preview": ("BOOLEAN", {"default": True}),
             },
             "hidden": {
@@ -132,7 +132,7 @@ class SaveImageSimple:
         }
     
     def save_images(self, images, filename_prefix="ComfyUI", foldername_prefix="",
-                   output_format=".webp", quality=75, job_data_per_image=False,
+                   output_format=".webp", quality=75, save_image_metadata=True,
                    image_preview=True, prompt=None, extra_pnginfo=None):
         """
         保存图像的主要方法 - 简化版
@@ -151,8 +151,8 @@ class SaveImageSimple:
                 counter_digits=4,
                 counter_position="last",
                 one_counter_per_folder=True,
-                save_job_data="basic" if job_data_per_image else "disabled",
-                job_data_per_image=job_data_per_image,
+                save_job_data="disabled",  # 强制禁用JSON导出
+                job_data_per_image=False, # 彻底禁用JSON导出
                 job_custom_text="",
                 image_preview=image_preview
             )
@@ -176,18 +176,8 @@ class SaveImageSimple:
                 extra_pnginfo=extra_pnginfo
             )
             
-            # 导出作业数据（如果启用）
-            if config.save_job_data != "disabled":
-                if not self.job_exporter:
-                    self.job_exporter = JobDataExporter(config)
-                else:
-                    self.job_exporter.update_config(config)
-                
-                self.job_exporter.export_job_data(
-                    results=results,
-                    prompt=prompt,
-                    extra_pnginfo=extra_pnginfo
-                )
+            # JSON导出功能已禁用 - 图片本身已包含完整元数据
+            # 不再需要额外的JSON文件
             
             logger.info(f"Successfully saved {len(results)} images")
             

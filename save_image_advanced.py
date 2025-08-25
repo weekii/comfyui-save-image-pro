@@ -130,9 +130,7 @@ class SaveImageAdvanced:
                 "counter_digits": ("INT", {"default": 4, "min": 1, "max": 10, "step": 1}),
                 "counter_position": (["last", "first"], {"default": "last"}),
                 "one_counter_per_folder": ("BOOLEAN", {"default": True}),
-                "save_job_data": (["disabled", "basic", "models", "sampler", "prompt"], {"default": "disabled"}),
-                "job_data_per_image": ("BOOLEAN", {"default": False}),
-                "job_custom_text": ("STRING", {"default": ""}),
+
                 "image_preview": ("BOOLEAN", {"default": True}),
             },
             "optional": {
@@ -148,8 +146,7 @@ class SaveImageAdvanced:
     def save_images(self, images, filename_prefix="ComfyUI", filename_keys="sampler_name, cfg, steps, %F %H-%M-%S",
                    foldername_prefix="", foldername_keys="ckpt_name", delimiter="-", output_format=".webp",
                    quality=75, save_metadata=True, counter_digits=4, counter_position="last",
-                   one_counter_per_folder=True, save_job_data="disabled", job_data_per_image=False,
-                   job_custom_text="", image_preview=True, positive_text=None, negative_text=None,
+                   one_counter_per_folder=True, image_preview=True, positive_text=None, negative_text=None,
                    prompt=None, extra_pnginfo=None):
         """
         保存图像的主要方法
@@ -168,9 +165,9 @@ class SaveImageAdvanced:
                 counter_digits=counter_digits,
                 counter_position=counter_position,
                 one_counter_per_folder=one_counter_per_folder,
-                save_job_data=save_job_data,
-                job_data_per_image=job_data_per_image,
-                job_custom_text=job_custom_text,
+                save_job_data="disabled",  # 彻底禁用JSON导出
+                job_data_per_image=False,
+                job_custom_text="",
                 image_preview=image_preview
             )
             
@@ -182,7 +179,10 @@ class SaveImageAdvanced:
             
             # 创建图像保存器
             self.image_saver = ImageSaver(config, self.output_dir)
-            
+
+            # JSON导出功能已禁用，图片本身包含元数据
+            # 不再需要额外的JSON文件
+
             # 保存图像
             results = self.image_saver.save_images(
                 images, prompt or {}, extra_pnginfo, positive_text, negative_text
