@@ -12,6 +12,7 @@
 - **元数据保存**: 完整的生成参数和提示词保存
 - **作业数据导出**: 详细的 JSON 格式生成信息
 - **批量处理**: 高效的多图像并行保存
+- **URL加载**: 从远程URL批量加载图像和遮罩
 
 ### ⚡ 性能特性
 - **智能缓存**: 文件名生成和参数提取缓存机制
@@ -27,11 +28,30 @@
 
 ## 📖 快速开始
 
+### 可用节点
+本插件提供以下节点：
+- **SaveImageAdvanced**: 高级图像保存节点（完整功能）
+- **SaveImageSimple**: 简化图像保存节点（常用功能）
+- **LoadImageFromURLPro**: 从URL加载图像（支持批量）
+- **LoadMaskFromURLPro**: 从URL加载遮罩（支持通道选择）
+
 ### 基本使用
+
+#### 保存图像
 1. 在 ComfyUI 中搜索并添加 "comfyui-save-image-pro" 节点
 2. 连接图像输出到节点的 images 输入
 3. 配置保存参数（格式、文件名、文件夹等）
 4. 运行工作流，图像将按配置保存
+
+#### 从URL加载图像
+1. 搜索并添加 "Load Image from URL (Pro)" 节点
+2. 在 urls 输入框中输入图像URL（每行一个）
+3. 连接输出到其他节点使用
+4. 示例URL格式：
+```
+https://example.com/image1.png
+https://example.com/image2.jpg
+```
 
 ### 配置示例
 
@@ -147,12 +167,16 @@ pip install pillow-avif-plugin
 
 # JXL 支持 (需要 MSVC 编译环境)
 pip install jxlpy
+
+# URL加载功能（通常已安装）
+pip install requests
 ```
 
 ### 系统要求
 - Python 3.8+
 - ComfyUI 最新版本
 - 足够的磁盘空间用于图像保存
+- 网络连接（用于URL加载功能）
 
 ## 🎨 格式支持和优化建议
 
@@ -183,6 +207,61 @@ pip install jxlpy
 1. 进入设置 (Settings)
 2. 启用 "Badge IDs" 选项
 3. 节点上会显示数字ID，可用于参数引用
+
+## 🌐 URL加载功能
+
+### LoadImageFromURLPro 节点
+从远程URL批量加载图像。
+
+**功能特点**：
+- ✅ 支持批量加载多个URL（每行一个）
+- ✅ 自动处理EXIF旋转
+- ✅ 自动提取Alpha通道作为遮罩
+- ✅ 支持多种图像格式（PNG, JPEG, WebP, GIF等）
+- ✅ 30秒超时保护
+- ✅ 完善的错误处理和日志
+
+**输入参数**：
+- `urls` (STRING): 图像URL地址，每行一个
+
+**输出**：
+- `images` (IMAGE列表): 加载的图像张量
+- `masks` (MASK列表): 对应的遮罩张量
+
+**使用示例**：
+```
+https://example.com/image1.png
+https://example.com/image2.jpg
+https://picsum.photos/512/512
+```
+
+### LoadMaskFromURLPro 节点
+从远程URL加载遮罩图像，支持选择颜色通道。
+
+**功能特点**：
+- ✅ 从指定颜色通道提取遮罩
+- ✅ Alpha通道自动反转
+- ✅ 批量处理支持
+
+**输入参数**：
+- `urls` (STRING): 图像URL地址，每行一个
+- `channel` (ENUM): 颜色通道选择（red/green/blue/alpha）
+
+**输出**：
+- `masks` (MASK列表): 提取的遮罩张量
+
+### 注意事项
+- 确保URL可访问且返回有效的图像数据
+- 大文件可能需要较长的加载时间
+- 建议使用稳定的网络连接
+- 空行会被自动忽略
+
+### 与 comfyui-easyapi-nodes 的区别
+如果你的系统中同时安装了 `comfyui-easyapi-nodes`，请注意：
+- **原版节点**: `LoadImageFromURL` (来自 easyapi-nodes)
+- **Pro版节点**: `LoadImageFromURLPro` (来自本插件)
+
+Pro版本提供了更好的错误处理、超时保护和详细日志记录。
 
 
 ## 🚀 重构亮点
@@ -235,16 +314,20 @@ pip install jxlpy
 
 ## 📋 更新日志
 
-### 最新版本 - 重构版本
+### 最新版本 (2025-10-28)
+- ✨ 新增 LoadImageFromURLPro 节点 - 从URL批量加载图像
+- ✨ 新增 LoadMaskFromURLPro 节点 - 从URL加载遮罩
+- 🔧 基于 comfyui-easyapi-nodes 实现，增强错误处理
+- ⚡ 添加30秒超时保护和详细日志
+- 📝 完善的文档和使用说明
+
+### 重构版本
 - ✨ 完全重构的模块化架构
 - ⚡ 大幅性能提升和优化
 - 🧪 完整的单元测试覆盖
 - 📚 完善的文档系统
 - 🔧 改进的错误处理和日志
 - 🎯 保持完全向后兼容
-
-### v2.x 历史版本
-详细的历史更新记录请查看 [CHANGELOG.md](CHANGELOG.md)
 
 ## 🤝 贡献
 
