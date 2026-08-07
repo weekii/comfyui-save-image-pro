@@ -9,22 +9,19 @@
 ### 🎯 核心功能
 - **多格式支持**: PNG, WebP, JPEG, AVIF, JXL, TIFF, GIF, BMP
 - **智能命名**: 灵活的文件名和文件夹结构自定义
-- **元数据保存**: 完整的生成参数和提示词保存
-- **作业数据导出**: 详细的 JSON 格式生成信息
-- **批量处理**: 高效的多图像并行保存
+- **元数据保存**: 可通过节点开关控制是否写入 prompt/workflow 元数据
+- **多图保存**: 支持批量图像保存和连续计数
 - **URL加载**: 从远程URL批量加载图像和遮罩
 
 ### ⚡ 性能特性
 - **智能缓存**: 文件名生成和参数提取缓存机制
-- **并行处理**: 多线程批量保存优化
-- **内存管理**: 自动内存监控和清理
 - **错误恢复**: 完善的错误处理和日志系统
 
 ### 🏗️ 架构优势
 - **模块化设计**: 11个独立核心模块
 - **策略模式**: 灵活的格式处理策略
 - **SOLID原则**: 高质量、可维护的代码架构
-- **完整测试**: 全面的单元测试覆盖
+- **可验证行为**: 保存开关和元数据写入逻辑可回归验证
 
 ## 📖 快速开始
 
@@ -97,8 +94,9 @@ counter_position: "first"
 ### 高级选项
 | 参数 | 描述 | 选项 |
 | --- | --- | --- |
-| `save_metadata` | 保存元数据到图像 | true/false |
-| `save_job_data` | 作业数据保存级别 | disabled, basic, models, prompt |
+| `save_metadata` / `save_image_metadata` | 元数据总开关；关闭后不写入图像元数据，也不导出 sidecar | true/false |
+| `metadata_mode` | 元数据写入模式 | off, comfy, a1111, comfy+a1111 |
+| `sidecar_mode` | 是否额外导出同名旁路文件 | off, json, txt, both |
 | `counter_digits` | 计数器位数 | 4 (默认), 1-10 |
 | `counter_position` | 计数器位置 | last, first |
 
@@ -168,7 +166,7 @@ pip install pillow-avif-plugin
 # JXL 支持 (需要 MSVC 编译环境)
 pip install jxlpy
 
-# URL加载功能（通常已安装）
+# URL加载功能
 pip install requests
 ```
 
@@ -191,16 +189,22 @@ pip install requests
 | **TIFF** | 专业标准 | 印刷用途 | 90-100 |
 
 ### 性能优化建议
-- **批量保存**: 插件自动使用多线程处理大批量图像
+- **批量保存**: 支持一次保存多张图像，并按输出目录自动递增编号
 - **缓存机制**: 文件名生成和参数提取会被缓存以提高性能
-- **内存管理**: 自动监控和清理内存使用
 - **格式选择**: WebP 通常是质量和大小的最佳平衡
 
 ### 元数据支持
-插件支持在图像中保存完整的生成信息：
-- **PNG**: 使用 PngInfo 保存提示词和工作流
-- **JPEG/WebP/AVIF**: 使用 EXIF 标签保存元数据
-- **兼容性**: 与 WAS Node Suite 等其他插件兼容
+插件支持在图像中保存生成信息，并可由节点开关控制：
+- **Simple 节点**: `save_image_metadata` 是元数据总开关
+- **Advanced 节点**: `save_metadata` 是元数据总开关
+- **metadata_mode=off**: 不写入图像元数据
+- **metadata_mode=comfy**: 写入 ComfyUI 原生 `prompt/workflow`，方便拖回 ComfyUI 复现
+- **metadata_mode=a1111**: 写入 A1111 风格 `parameters`，更适合 Civitai/Prompthero 等平台识别
+- **metadata_mode=comfy+a1111**: 同时写入 ComfyUI workflow 和 A1111 parameters
+- **sidecar_mode=json/txt/both**: 额外导出同名 `.json` / `.txt` 旁路文件
+- **PNG**: 使用 PngInfo 保存提示词、工作流和 parameters
+- **JPEG/WebP/AVIF/JXL**: 使用 EXIF 标签保存核心元数据和 parameters
+- **全局兼容**: 同时遵守 ComfyUI 的 `--disable-metadata` 全局设置
 
 ### 节点ID显示
 要使用节点参数引用功能，需要在 ComfyUI 中启用节点ID显示：
@@ -218,11 +222,13 @@ pip install requests
 - ✅ 自动处理EXIF旋转
 - ✅ 自动提取Alpha通道作为遮罩
 - ✅ 支持多种图像格式（PNG, JPEG, WebP, GIF等）
-- ✅ 30秒超时保护
+- ✅ 可配置请求超时时间
 - ✅ 完善的错误处理和日志
 
 **输入参数**：
 - `urls` (STRING): 图像URL地址，每行一个
+- `timeout` (INT): 单个URL请求超时时间（秒）
+- `verify_ssl` (BOOLEAN): 是否校验 HTTPS 证书
 
 **输出**：
 - `images` (IMAGE列表): 加载的图像张量
@@ -245,6 +251,8 @@ https://picsum.photos/512/512
 
 **输入参数**：
 - `urls` (STRING): 图像URL地址，每行一个
+- `timeout` (INT): 单个URL请求超时时间（秒）
+- `verify_ssl` (BOOLEAN): 是否校验 HTTPS 证书
 - `channel` (ENUM): 颜色通道选择（red/green/blue/alpha）
 
 **输出**：
@@ -270,12 +278,12 @@ Pro版本提供了更好的错误处理、超时保护和详细日志记录。
 - **模块化设计**: 从单一文件重构为11个专业模块
 - **SOLID原则**: 遵循软件工程最佳实践
 - **策略模式**: 灵活的格式处理架构
-- **完整测试**: 全面的单元测试覆盖
+- **可验证行为**: 保存开关和元数据写入逻辑可回归验证
 
-### 性能提升
-- **智能缓存**: 50-70% 文件名生成性能提升
-- **并行处理**: 30-50% 批量保存性能提升
-- **内存优化**: 20-30% 内存使用减少
+### 性能和稳定性
+- **分享兼容**: 支持 A1111 风格 parameters 和 sidecar 文件
+- **智能缓存**: 文件名生成和参数提取带缓存机制
+- **连续计数**: 按输出目录扫描已有文件，避免覆盖
 - **错误恢复**: 完善的错误处理机制
 
 ### 开发体验
@@ -304,7 +312,6 @@ Pro版本提供了更好的错误处理、超时保护和详细日志记录。
 
 **Q: 性能问题**
 - 启用缓存功能
-- 调整批量处理设置
 - 检查磁盘空间和内存
 
 ### 获取帮助
@@ -314,17 +321,28 @@ Pro版本提供了更好的错误处理、超时保护和详细日志记录。
 
 ## 📋 更新日志
 
-### 最新版本 (2025-10-28)
+### 1.1.0
+- ✨ 新增 `metadata_mode`: off / comfy / a1111 / comfy+a1111
+- ✨ 新增 `sidecar_mode`: off / json / txt / both
+- ✨ 新增 A1111 风格 `parameters` 写入，提升 Civitai/Prompthero 识别兼容性
+- ✨ JPEG/WebP/AVIF/JXL 支持通过 EXIF 写入核心 parameters
+- 🔧 修复 #12: 支持 `/img2img/ckpt_name/%F` 这类混合结构文件夹
+- 🔧 修复 #11: 计数器识别当前 delimiter，不再硬编码 `-`
+- 🔧 对齐 ComfyUI 全局 `--disable-metadata` 元数据开关
+- 🔧 URL 节点新增可配置 timeout 和 verify_ssl
+- 🧪 新增元数据、sidecar、计数器和混合路径回归测试
+
+### 最新版本
 - ✨ 新增 LoadImageFromURLPro 节点 - 从URL批量加载图像
 - ✨ 新增 LoadMaskFromURLPro 节点 - 从URL加载遮罩
 - 🔧 基于 comfyui-easyapi-nodes 实现，增强错误处理
-- ⚡ 添加30秒超时保护和详细日志
+- ⚡ 添加可配置超时保护、SSL 校验开关和详细日志
 - 📝 完善的文档和使用说明
 
 ### 重构版本
 - ✨ 完全重构的模块化架构
-- ⚡ 大幅性能提升和优化
-- 🧪 完整的单元测试覆盖
+- ⚡ 文件名和参数提取缓存优化
+- 🧪 元数据开关行为可回归验证
 - 📚 完善的文档系统
 - 🔧 改进的错误处理和日志
 - 🎯 保持完全向后兼容

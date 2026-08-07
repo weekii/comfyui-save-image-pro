@@ -5,6 +5,7 @@
 """
 
 import os
+import json
 from typing import Dict, List, Any, Optional, Tuple
 from PIL import Image
 from datetime import datetime
@@ -18,6 +19,11 @@ from ..strategies import (
     FormatStrategy, PNGStrategy, WebPStrategy, AVIFStrategy, 
     JPEGStrategy, JXLStrategy, TIFFStrategy, GIFStrategy, BMPStrategy
 )
+
+try:
+    from comfy.cli_args import args as comfy_args
+except Exception:
+    comfy_args = None
 
 
 class ImageSaver:
@@ -97,15 +103,9 @@ class ImageSaver:
             counter = self.counter_manager.get_next_counter(
                 output_path, base_filename,
                 self.config.counter_digits, self.config.counter_position,
-                self.config.output_format, self.config.one_counter_per_folder
+                self.config.output_format, self.config.one_counter_per_folder,
+                self.config.delimiter
             )
-            
-            # 准备元数据
-            metadata = None
-            if self.config.save_metadata:
-                metadata = self.metadata_handler.prepare_metadata(
-                    prompt, extra_pnginfo, positive_text, negative_text
-                )
             
             # 保存每张图像
             for i, image_tensor in enumerate(images):
@@ -120,9 +120,23 @@ class ImageSaver:
                 # 完整文件路径
                 file_path = os.path.join(output_path, full_filename)
                 
-                # 保存图像
+                # 准备元数据；A1111 参数需要当前图片尺寸
+                metadata = None
+                if self._should_save_metadata():
+                    metadata = self.metadata_handler.prepare_metadata(
+                        prompt,
+                        extra_pnginfo,
+                        positive_text,
+                        negative_text,
+                        metadata_mode=self.config.metadata_mode,
+                        width=pil_image.width,
+                        height=pil_image.height,
+                    )
+
+                # 保存图像和旁路文件
                 self._save_single_image(pil_image, file_path, metadata)
-                
+                self._save_sidecars(file_path, metadata)
+
                 # 记录结果
                 if self.config.image_preview:
                     subfolder = self.path_manager.get_subfolder_path(file_path)
@@ -138,7 +152,31 @@ class ImageSaver:
         
         return results
     
-    def _save_single_image(self, image: Image.Image, file_path: str, 
+    def _should_save_metadata(self) -> bool:
+        """Return True when node and ComfyUI global metadata settings allow metadata."""
+        if not self.config.save_metadata or self.config.metadata_mode == "off":
+            return False
+
+        if comfy_args is not None and getattr(comfy_args, 'disable_metadata', False):
+            return False
+
+        return True
+
+    def _save_sidecars(self, file_path: str, metadata: Optional[Dict] = None):
+        """Save optional .json/.txt metadata sidecars next to the image."""
+        if not metadata or self.config.sidecar_mode == "off":
+            return
+
+        base_path = os.path.splitext(file_path)[0]
+        if self.config.sidecar_mode in ("json", "both"):
+            with open(base_path + ".json", "w", encoding="utf-8") as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+        if self.config.sidecar_mode in ("txt", "both") and metadata.get("parameters"):
+            with open(base_path + ".txt", "w", encoding="utf-8") as f:
+                f.write(str(metadata["parameters"]))
+
+    def _save_single_image(self, image: Image.Image, file_path: str,
                           metadata: Optional[Dict] = None):
         """保存单张图像"""
         # 获取格式策略

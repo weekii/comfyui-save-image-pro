@@ -17,8 +17,11 @@ class MetadataHandler:
         self.cache_enabled = True
     
     def prepare_metadata(self, prompt: Dict, extra_pnginfo: Optional[Dict] = None,
-                        positive_text: Optional[str] = None, 
-                        negative_text: Optional[str] = None) -> Dict[str, Any]:
+                        positive_text: Optional[str] = None,
+                        negative_text: Optional[str] = None,
+                        metadata_mode: str = "comfy",
+                        width: Optional[int] = None,
+                        height: Optional[int] = None) -> Dict[str, Any]:
         """
         准备元数据
         
@@ -32,7 +35,7 @@ class MetadataHandler:
             格式化的元数据字典
         """
         # 生成缓存键
-        cache_key = self._generate_cache_key(prompt, extra_pnginfo, positive_text, negative_text)
+        cache_key = self._generate_cache_key(prompt, extra_pnginfo, positive_text, negative_text, metadata_mode, width, height)
         
         # 检查缓存
         if self.cache_enabled and cache_key in self.cache:
@@ -40,28 +43,37 @@ class MetadataHandler:
         
         metadata = {}
         
-        # 添加基本提示信息
-        if prompt:
-            metadata['prompt'] = prompt
-        
-        # 添加额外信息
-        if extra_pnginfo:
-            metadata.update(extra_pnginfo)
-        
+        include_comfy = metadata_mode in ("comfy", "comfy+a1111")
+        include_a1111 = metadata_mode in ("a1111", "comfy+a1111")
+
+        if include_comfy:
+            # 添加基本提示信息
+            if prompt:
+                metadata['prompt'] = prompt
+
+            # 添加额外信息，例如 workflow
+            if extra_pnginfo:
+                metadata.update(extra_pnginfo)
+
         # 添加文本提示（如果提供）
         if positive_text:
             metadata['positive_prompt'] = positive_text
-        
+
         if negative_text:
             metadata['negative_prompt'] = negative_text
-        
+
+        if include_a1111:
+            metadata['parameters'] = self.format_a1111_parameters(
+                prompt, positive_text, negative_text, width, height
+            )
+
         # 添加生成时间戳
         metadata['generated_at'] = datetime.now().isoformat()
-        
+
         # 添加插件信息
         metadata['generator'] = {
             'name': 'ComfyUI Save Image Pro',
-            'version': 'latest'
+            'version': '1.1.0'
         }
         
         # 缓存结果
@@ -71,14 +83,19 @@ class MetadataHandler:
         return metadata
     
     def _generate_cache_key(self, prompt: Dict, extra_pnginfo: Optional[Dict],
-                           positive_text: Optional[str], negative_text: Optional[str]) -> str:
+                           positive_text: Optional[str], negative_text: Optional[str],
+                           metadata_mode: str = "comfy", width: Optional[int] = None,
+                           height: Optional[int] = None) -> str:
         """生成缓存键"""
         # 使用JSON序列化生成稳定的键
         key_data = {
             'prompt_id': id(prompt),
             'extra_id': id(extra_pnginfo) if extra_pnginfo else None,
             'positive': positive_text,
-            'negative': negative_text
+            'negative': negative_text,
+            'metadata_mode': metadata_mode,
+            'width': width,
+            'height': height
         }
         return json.dumps(key_data, sort_keys=True)
     
@@ -143,6 +160,63 @@ class MetadataHandler:
             print(f"EXIF元数据生成错误: {e}")
             return b''
     
+
+    def format_a1111_parameters(self, prompt: Dict, positive_text: Optional[str] = None,
+                                negative_text: Optional[str] = None,
+                                width: Optional[int] = None,
+                                height: Optional[int] = None) -> str:
+        """Build an Automatic1111-style parameters string for sharing sites."""
+        positive = positive_text or self._find_prompt_text(prompt, prefer_negative=False) or ""
+        negative = negative_text or self._find_prompt_text(prompt, prefer_negative=True) or ""
+        params = self._extract_common_parameters(prompt or {})
+
+        tail_parts = []
+        mapping = [
+            ("steps", "Steps"),
+            ("sampler_name", "Sampler"),
+            ("scheduler", "Schedule type"),
+            ("cfg", "CFG scale"),
+            ("seed", "Seed"),
+        ]
+        for source_key, label in mapping:
+            value = params.get(source_key)
+            if value:
+                tail_parts.append(f"{label}: {value}")
+
+        if width and height:
+            tail_parts.append(f"Size: {width}x{height}")
+
+        model_name = params.get("ckpt_name") or params.get("model")
+        if model_name:
+            model_name = str(model_name).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+            for ext in (".safetensors", ".ckpt", ".pt", ".bin", ".pth"):
+                if model_name.endswith(ext):
+                    model_name = model_name[:-len(ext)]
+                    break
+            tail_parts.append(f"Model: {model_name}")
+
+        lines = [positive]
+        if negative:
+            lines.append(f"Negative prompt: {negative}")
+        if tail_parts:
+            lines.append(", ".join(tail_parts))
+        return "\n".join(lines).strip()
+
+    def _find_prompt_text(self, prompt: Dict, prefer_negative: bool = False) -> Optional[str]:
+        texts = []
+        if isinstance(prompt, dict):
+            for node in prompt.values():
+                if not isinstance(node, dict):
+                    continue
+                inputs = node.get('inputs', {})
+                class_type = str(node.get('class_type', '')).lower()
+                text = inputs.get('text') if isinstance(inputs, dict) else None
+                if text and ('cliptextencode' in class_type or 'text' in class_type):
+                    texts.append(str(text))
+        if not texts:
+            return None
+        return texts[-1] if prefer_negative and len(texts) > 1 else texts[0]
+
     def extract_parameters(self, metadata: Dict[str, Any]) -> Dict[str, str]:
         """
         从元数据中提取关键参数

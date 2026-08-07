@@ -9,7 +9,7 @@ ComfyUI Save Image Pro - 专业级图像保存插件
 @title: ComfyUI Save Image Pro
 @nickname: Save Image Pro
 @description: 专业级图像保存插件，支持多格式、自定义命名和高级功能
-@version: latest
+@version: 1.1.0
 @repository: https://github.com/weekii/comfyui-save-image-pro
 """
 

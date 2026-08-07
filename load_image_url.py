@@ -20,7 +20,7 @@ from typing import Tuple, List
 logger = logging.getLogger(__name__)
 
 
-def read_image_from_url(image_url: str) -> Image.Image:
+def read_image_from_url(image_url: str, timeout: int = 30, verify_ssl: bool = True) -> Image.Image:
     """
     从URL读取图像
     
@@ -31,17 +31,22 @@ def read_image_from_url(image_url: str) -> Image.Image:
         PIL Image对象，如果失败返回None
     """
     try:
-        # 创建会话并禁用keep-alive
-        session = requests.Session()
-        session.keep_alive = False
+        timeout = max(1, int(timeout))
+        headers = {"User-Agent": "ComfyUI-Save-Image-Pro/1.0"}
 
-        # 从URL获取图像内容
-        response = session.get(image_url, stream=True, verify=False, timeout=30)
-        response.raise_for_status()  # 确保获得有效响应
+        # 创建会话并确保请求完成后释放连接
+        with requests.Session() as session:
+            session.keep_alive = False
+            response = session.get(
+                image_url,
+                stream=True,
+                verify=verify_ssl,
+                timeout=timeout,
+                headers=headers,
+            )
+            response.raise_for_status()  # 确保获得有效响应
+            image_bytes = io.BytesIO(response.content)
 
-        # 将响应内容转换为BytesIO对象
-        image_bytes = io.BytesIO(response.content)
-        
         # 使用PIL打开图像并强制加载图像数据
         img = Image.open(image_bytes)
         img.load()  # 确保图像完全加载
@@ -70,6 +75,17 @@ class LoadImageFromURLPro:
                     "default": "", 
                     "dynamicPrompts": False,
                     "tooltip": "图像URL地址，每行一个URL"
+                }),
+                "timeout": ("INT", {
+                    "default": 30,
+                    "min": 1,
+                    "max": 300,
+                    "step": 1,
+                    "tooltip": "单个URL请求超时时间（秒）"
+                }),
+                "verify_ssl": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "校验 HTTPS 证书；如遇自签名证书可关闭"
                 }),
             },
         }
@@ -103,7 +119,7 @@ https://example.com/image3.webp
 ```
 """
 
-    def load_images(self, urls: str) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+    def load_images(self, urls: str, timeout: int = 30, verify_ssl: bool = True) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         """
         从URL加载图像
         
@@ -122,7 +138,7 @@ https://example.com/image3.webp
         for url in url_list:
             try:
                 # 从URL读取图像
-                img = read_image_from_url(url)
+                img = read_image_from_url(url, timeout=timeout, verify_ssl=verify_ssl)
                 
                 if img is None:
                     logger.warning(f"Skipping failed URL: {url}")
@@ -188,6 +204,17 @@ class LoadMaskFromURLPro:
                     "dynamicPrompts": False,
                     "tooltip": "图像URL地址，每行一个URL"
                 }),
+                "timeout": ("INT", {
+                    "default": 30,
+                    "min": 1,
+                    "max": 300,
+                    "step": 1,
+                    "tooltip": "单个URL请求超时时间（秒）"
+                }),
+                "verify_ssl": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "校验 HTTPS 证书；如遇自签名证书可关闭"
+                }),
                 "channel": (cls._color_channels, {
                     "default": cls._color_channels[0],
                     "tooltip": "用于提取遮罩的颜色通道"
@@ -217,7 +244,7 @@ class LoadMaskFromURLPro:
 - alpha: 从透明通道提取（自动反转）
 """
 
-    def load_masks(self, urls: str, channel: str = "red") -> Tuple[List[torch.Tensor]]:
+    def load_masks(self, urls: str, timeout: int = 30, verify_ssl: bool = True, channel: str = "red") -> Tuple[List[torch.Tensor]]:
         """
         从URL加载遮罩
         
@@ -236,7 +263,7 @@ class LoadMaskFromURLPro:
         for url in url_list:
             try:
                 # 从URL读取图像
-                img = read_image_from_url(url)
+                img = read_image_from_url(url, timeout=timeout, verify_ssl=verify_ssl)
                 
                 if img is None:
                     logger.warning(f"Skipping failed URL: {url}")

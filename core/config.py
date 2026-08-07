@@ -38,6 +38,8 @@ class SaveConfig:
     output_format: str = ".webp"
     quality: int = 75
     save_metadata: bool = True
+    metadata_mode: str = "comfy"
+    sidecar_mode: str = "off"
     counter_digits: int = 4
     counter_position: str = "last"
     one_counter_per_folder: bool = True
@@ -151,6 +153,14 @@ class ConfigManager:
         if not (1 <= config.quality <= 100):
             result.add_error("质量参数必须在1-100之间")
         
+        # 验证元数据模式
+        if config.metadata_mode not in ["off", "comfy", "a1111", "comfy+a1111"]:
+            result.add_error(f"不支持的元数据模式: {config.metadata_mode}")
+
+        # 验证旁路文件模式
+        if config.sidecar_mode not in ["off", "json", "txt", "both"]:
+            result.add_error(f"不支持的旁路文件模式: {config.sidecar_mode}")
+
         # 验证计数器位数
         if not (1 <= config.counter_digits <= 8):
             result.add_error("计数器位数必须在1-8之间")

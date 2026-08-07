@@ -3,7 +3,7 @@ ComfyUI Save Image Pro - 简化版节点
 
 简化版图像保存节点，提供基础的图像保存功能。
 
-@version: latest
+@version: 1.1.0
 @author: AudioscavengeR
 """
 
@@ -23,7 +23,7 @@ from .core import (
 )
 
 # 版本信息
-VERSION = "latest"
+VERSION = "1.1.0"
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -66,7 +66,8 @@ class SaveImageSimple:
     提供基础的图像保存功能，包含最常用的参数。
     """
     
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
     FUNCTION = 'save_images'
     OUTPUT_NODE = True
     CATEGORY = 'image'
@@ -117,12 +118,14 @@ class SaveImageSimple:
         
         return {
             "required": {
-                "images": ("IMAGE", ),
+                "images": ("IMAGE", {"tooltip": "The images to save and pass through."}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
                 "foldername_prefix": ("STRING", {"default": ""}),
                 "output_format": (output_formats, {"default": ".webp"}),
                 "quality": ("INT", {"default": 75, "min": 1, "max": 100, "step": 1}),
-                "save_image_metadata": ("BOOLEAN", {"default": True}),
+                "save_image_metadata": ("BOOLEAN", {"default": True, "tooltip": "Embed metadata in saved files. Turn off to save plain images."}),
+                "metadata_mode": (["comfy", "a1111", "comfy+a1111", "off"], {"default": "comfy", "tooltip": "comfy writes prompt/workflow; a1111 writes share-site parameters; comfy+a1111 writes both."}),
+                "sidecar_mode": (["off", "json", "txt", "both"], {"default": "off", "tooltip": "Optionally write metadata sidecar files next to each saved image."}),
                 "image_preview": ("BOOLEAN", {"default": True}),
             },
             "hidden": {
@@ -133,7 +136,8 @@ class SaveImageSimple:
     
     def save_images(self, images, filename_prefix="ComfyUI", foldername_prefix="",
                    output_format=".webp", quality=75, save_image_metadata=True,
-                   image_preview=True, prompt=None, extra_pnginfo=None):
+                   metadata_mode="comfy", sidecar_mode="off", image_preview=True,
+                   prompt=None, extra_pnginfo=None):
         """
         保存图像的主要方法 - 简化版
         """
@@ -147,7 +151,9 @@ class SaveImageSimple:
                 delimiter="-",
                 output_format=output_format,
                 quality=quality,
-                save_metadata=True,  # 简化版默认保存元数据
+                save_metadata=save_image_metadata,
+                metadata_mode=metadata_mode,
+                sidecar_mode=sidecar_mode,
                 counter_digits=4,
                 counter_position="last",
                 one_counter_per_folder=True,
@@ -161,7 +167,7 @@ class SaveImageSimple:
             validation = self.config_manager.validate_config(config)
             if not validation.valid:
                 logger.error(f"Configuration validation failed: {validation.errors}")
-                return {"ui": {"images": []}}
+                return {"ui": {"images": []}, "result": (images,)}
             
             # 初始化图像保存器
             if not self.image_saver:
@@ -183,15 +189,15 @@ class SaveImageSimple:
             
             # 返回结果
             if config.image_preview:
-                return {"ui": {"images": results}}
+                return {"ui": {"images": results}, "result": (images,)}
             else:
-                return {"ui": {"images": []}}
+                return {"ui": {"images": []}, "result": (images,)}
                 
         except Exception as e:
             logger.error(f"Error occurred while saving images: {str(e)}")
             import traceback
             traceback.print_exc()
-            return {"ui": {"images": []}}
+            return {"ui": {"images": []}, "result": (images,)}
 
 
 # 节点类映射

@@ -19,6 +19,9 @@ Thumbs.db
 *.tmp
 temp/
 
+# 本地 OpenCode/PM 工作流状态
+.pm-workflow/
+
 # 日志文件
 *.log
 

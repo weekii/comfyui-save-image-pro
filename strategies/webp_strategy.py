@@ -61,6 +61,13 @@ class WebPStrategy(FormatStrategy):
             if 'workflow' in metadata:
                 # 0x010e: ImageDescription字段存储workflow
                 exif[0x010e] = "Workflow: " + json.dumps(metadata['workflow'])
+
+            if 'parameters' in metadata:
+                parameters = str(metadata['parameters'])
+                # 0x010e: ImageDescription is widely read by image hosts/tools.
+                exif[0x010e] = parameters
+                # 0x9286: UserComment stores a second copy for EXIF readers.
+                exif[0x9286] = parameters.encode('utf-8')
             
             return exif.tobytes()
         

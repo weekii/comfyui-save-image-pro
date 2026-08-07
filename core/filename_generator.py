@@ -116,11 +116,12 @@ class FileNameGenerator:
         
         keys = self.config.get_filename_keys_list()
         return self._generate_custom_name(
-            keys, 
-            self.config.filename_prefix, 
-            self.config.delimiter, 
-            prompt, 
-            timestamp
+            keys,
+            self.config.filename_prefix,
+            self.config.delimiter,
+            prompt,
+            timestamp,
+            default_if_empty="ComfyUI"
         )
     
     def generate_foldername(self, prompt: Dict, timestamp: Optional[datetime] = None) -> str:
@@ -129,16 +130,52 @@ class FileNameGenerator:
             timestamp = datetime.now()
         
         keys = self.config.get_foldername_keys_list()
-        return self._generate_custom_name(
-            keys,
-            self.config.foldername_prefix,
-            self.config.delimiter,
-            prompt,
-            timestamp
-        )
+        return self._generate_folder_name(keys, prompt, timestamp)
     
-    def _generate_custom_name(self, keys: List[str], prefix: str, delimiter: str, 
-                            prompt: Dict, timestamp: datetime) -> str:
+
+    def _generate_folder_name(self, keys: List[str], prompt: Dict, timestamp: datetime) -> str:
+        """Generate folder names, supporting slash-separated mixed structures."""
+        parts = []
+
+        if self.config.foldername_prefix:
+            parts.append(self._clean_filename(self.config.foldername_prefix))
+
+        for key in keys:
+            raw_parts = key.replace('\\', '/').split('/') if '/' in key or '\\' in key else [key]
+            for raw_part in raw_parts:
+                part = raw_part.strip()
+                if not part or part in ('.', '..'):
+                    continue
+
+                value = self._resolve_name_part(part, prompt, timestamp)
+                if value:
+                    parts.append(value)
+
+        return '/'.join(parts)
+
+    def _resolve_name_part(self, key: str, prompt: Dict, timestamp: datetime) -> Optional[str]:
+        """Resolve a single filename/folder token to text."""
+        if key.startswith('%'):
+            try:
+                return self._clean_filename(timestamp.strftime(key))
+            except ValueError:
+                return None
+
+        if key.startswith('./'):
+            key = key[2:]
+        elif key.startswith('../'):
+            key = key[3:]
+
+        value = self.extractor._extract_single_parameter(prompt, key)
+        if value is not None:
+            return self._clean_filename(str(value))
+
+        # Folder paths often include literal grouping components such as img2img/txt2img.
+        return self._clean_filename(key)
+
+    def _generate_custom_name(self, keys: List[str], prefix: str, delimiter: str,
+                            prompt: Dict, timestamp: datetime,
+                            default_if_empty: str = "ComfyUI") -> str:
         """生成自定义名称的核心逻辑"""
         custom_name = prefix
         
@@ -180,7 +217,7 @@ class FileNameGenerator:
                 custom_name += value
         
         # 清理最终结果
-        return self._clean_final_name(custom_name, delimiter)
+        return self._clean_final_name(custom_name, delimiter, default_if_empty)
     
     def _clean_filename(self, value: str) -> str:
         """清理文件名中的无效字符"""
@@ -200,15 +237,15 @@ class FileNameGenerator:
         
         return value
     
-    def _clean_final_name(self, name: str, delimiter: str) -> str:
+    def _clean_final_name(self, name: str, delimiter: str, default_if_empty: str = "ComfyUI") -> str:
         """清理最终的名称"""
         # 移除前后的分隔符和点
         name = name.strip(delimiter).strip('.').strip('/').strip(delimiter)
         
-        # 如果名称为空，使用默认前缀
+        # 如果名称为空，按调用场景使用默认值：文件名兜底，文件夹名可为空
         if not name:
-            name = "ComfyUI"
-        
+            name = default_if_empty
+
         return name
     
     def generate_full_filename(self, prompt: Dict, counter: int, 

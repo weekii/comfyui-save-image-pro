@@ -1,9 +1,9 @@
 [project]
 name = "comfyui-save-image-pro"
 description = "专业级 ComfyUI 图像保存插件，支持多格式、自定义命名和高级功能"
-version = "latest"
+version = "1.1.0"
 license = "GPL-3.0"
-dependencies = ["piexif", "pillow", "pillow-avif-plugin"]
+dependencies = ["piexif", "pillow", "pillow-avif-plugin", "requests"]
 
 [project.urls]
 Repository = "https://github.com/weekii/comfyui-save-image-pro"

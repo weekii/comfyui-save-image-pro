@@ -19,7 +19,7 @@ class CounterManager:
     
     def get_next_counter(self, folder_path: str, filename_prefix: str, 
                         counter_digits: int = 4, counter_position: str = 'last',
-                        output_ext: str = '.webp', one_counter_per_folder: bool = True) -> int:
+                        output_ext: str = '.webp', one_counter_per_folder: bool = True, delimiter: str = '-') -> int:
         """
         获取下一个可用的计数器值
         
@@ -37,7 +37,7 @@ class CounterManager:
         # 生成缓存键
         cache_key = self._generate_cache_key(
             folder_path, filename_prefix, counter_position, 
-            output_ext, one_counter_per_folder
+            output_ext, one_counter_per_folder, delimiter
         )
         
         # 检查缓存
@@ -49,7 +49,7 @@ class CounterManager:
         # 计算当前最大计数器值
         current_max = self._find_max_counter(
             folder_path, filename_prefix, counter_digits,
-            counter_position, output_ext, one_counter_per_folder
+            counter_position, output_ext, one_counter_per_folder, delimiter
         )
         
         next_counter = current_max + 1
@@ -62,7 +62,7 @@ class CounterManager:
     
     def _find_max_counter(self, folder_path: str, filename_prefix: str,
                          counter_digits: int, counter_position: str,
-                         output_ext: str, one_counter_per_folder: bool) -> int:
+                         output_ext: str, one_counter_per_folder: bool, delimiter: str = '-') -> int:
         """查找当前最大的计数器值"""
         if not os.path.exists(folder_path):
             return 0
@@ -74,16 +74,16 @@ class CounterManager:
             if one_counter_per_folder:
                 # 匹配所有文件，不限制前缀
                 if counter_position == 'last':
-                    pattern = rf'.*-(\d{{{counter_digits}}}){re.escape(output_ext)}$'
+                    pattern = rf'.*{re.escape(delimiter)}(\d{{{counter_digits}}}){re.escape(output_ext)}$'
                 else:  # 'first'
-                    pattern = rf'(\d{{{counter_digits}}})-.*{re.escape(output_ext)}$'
+                    pattern = rf'(\d{{{counter_digits}}}){re.escape(delimiter)}.*{re.escape(output_ext)}$'
             else:
                 # 只匹配特定前缀的文件
                 escaped_prefix = re.escape(filename_prefix)
                 if counter_position == 'last':
-                    pattern = rf'{escaped_prefix}.*-(\d{{{counter_digits}}}){re.escape(output_ext)}$'
+                    pattern = rf'{escaped_prefix}.*{re.escape(delimiter)}(\d{{{counter_digits}}}){re.escape(output_ext)}$'
                 else:  # 'first'
-                    pattern = rf'(\d{{{counter_digits}}})-{escaped_prefix}.*{re.escape(output_ext)}$'
+                    pattern = rf'(\d{{{counter_digits}}}){re.escape(delimiter)}{escaped_prefix}.*{re.escape(output_ext)}$'
             
             compiled_pattern = re.compile(pattern)
             
@@ -104,16 +104,16 @@ class CounterManager:
     
     def _generate_cache_key(self, folder_path: str, filename_prefix: str,
                            counter_position: str, output_ext: str,
-                           one_counter_per_folder: bool) -> str:
+                           one_counter_per_folder: bool, delimiter: str = '-') -> str:
         """生成缓存键"""
         # 标准化路径
         normalized_path = str(Path(folder_path).resolve())
         
         # 如果是每个文件夹一个计数器，忽略前缀
         if one_counter_per_folder:
-            return f"{normalized_path}|{counter_position}|{output_ext}|global"
+            return f"{normalized_path}|{counter_position}|{output_ext}|{delimiter}|global"
         else:
-            return f"{normalized_path}|{filename_prefix}|{counter_position}|{output_ext}|prefix"
+            return f"{normalized_path}|{filename_prefix}|{counter_position}|{output_ext}|{delimiter}|prefix"
     
     def invalidate_cache(self, folder_path: Optional[str] = None):
         """
@@ -148,7 +148,7 @@ class CounterManager:
     
     def preload_counters(self, folder_paths: list, filename_prefix: str = "",
                         counter_digits: int = 4, counter_position: str = 'last',
-                        output_ext: str = '.webp', one_counter_per_folder: bool = True):
+                        output_ext: str = '.webp', one_counter_per_folder: bool = True, delimiter: str = '-'):
         """
         预加载多个文件夹的计数器
         
@@ -160,5 +160,5 @@ class CounterManager:
             if os.path.exists(folder_path):
                 self.get_next_counter(
                     folder_path, filename_prefix, counter_digits,
-                    counter_position, output_ext, one_counter_per_folder
+                    counter_position, output_ext, one_counter_per_folder, delimiter
                 )

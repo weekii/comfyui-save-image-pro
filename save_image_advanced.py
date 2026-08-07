@@ -3,7 +3,7 @@ ComfyUI Save Image Pro - ComfyUI插件 (重构版本)
 
 使用模块化架构重构的图像保存插件，支持多种格式和自定义配置。
 
-@version: latest
+@version: 1.1.0
 @author: AudioscavengeR (重构版本)
 """
 
@@ -23,7 +23,7 @@ from .core import (
 )
 
 # 版本信息
-VERSION = "latest"
+VERSION = "1.1.0"
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -63,7 +63,8 @@ class SaveImageAdvanced:
     使用模块化架构的图像保存节点，支持多种格式和自定义配置。
     """
     
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
     FUNCTION = 'save_images'
     OUTPUT_NODE = True
     CATEGORY = 'image'
@@ -118,7 +119,7 @@ class SaveImageAdvanced:
         
         return {
             "required": {
-                "images": ("IMAGE", ),
+                "images": ("IMAGE", {"tooltip": "The images to save and pass through."}),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
                 "filename_keys": ("STRING", {"default": "sampler_name, cfg, steps, %F %H-%M-%S"}),
                 "foldername_prefix": ("STRING", {"default": ""}),
@@ -126,7 +127,9 @@ class SaveImageAdvanced:
                 "delimiter": ("STRING", {"default": "-"}),
                 "output_format": (output_formats, {"default": ".webp"}),
                 "quality": ("INT", {"default": 75, "min": 1, "max": 100, "step": 1}),
-                "save_metadata": ("BOOLEAN", {"default": True}),
+                "save_metadata": ("BOOLEAN", {"default": True, "tooltip": "Embed metadata in saved files. Turn off to save plain images."}),
+                "metadata_mode": (["comfy", "a1111", "comfy+a1111", "off"], {"default": "comfy", "tooltip": "comfy writes prompt/workflow; a1111 writes share-site parameters; comfy+a1111 writes both."}),
+                "sidecar_mode": (["off", "json", "txt", "both"], {"default": "off", "tooltip": "Optionally write metadata sidecar files next to each saved image."}),
                 "counter_digits": ("INT", {"default": 4, "min": 1, "max": 10, "step": 1}),
                 "counter_position": (["last", "first"], {"default": "last"}),
                 "one_counter_per_folder": ("BOOLEAN", {"default": True}),
@@ -145,8 +148,9 @@ class SaveImageAdvanced:
     
     def save_images(self, images, filename_prefix="ComfyUI", filename_keys="sampler_name, cfg, steps, %F %H-%M-%S",
                    foldername_prefix="", foldername_keys="ckpt_name", delimiter="-", output_format=".webp",
-                   quality=75, save_metadata=True, counter_digits=4, counter_position="last",
-                   one_counter_per_folder=True, image_preview=True, positive_text=None, negative_text=None,
+                   quality=75, save_metadata=True, metadata_mode="comfy", sidecar_mode="off",
+                   counter_digits=4, counter_position="last", one_counter_per_folder=True,
+                   image_preview=True, positive_text=None, negative_text=None,
                    prompt=None, extra_pnginfo=None):
         """
         保存图像的主要方法
@@ -162,6 +166,8 @@ class SaveImageAdvanced:
                 output_format=output_format,
                 quality=quality,
                 save_metadata=save_metadata,
+                metadata_mode=metadata_mode,
+                sidecar_mode=sidecar_mode,
                 counter_digits=counter_digits,
                 counter_position=counter_position,
                 one_counter_per_folder=one_counter_per_folder,
@@ -190,12 +196,12 @@ class SaveImageAdvanced:
             
             logger.info(f"Successfully saved {len(results)} images")
             
-            return {"ui": {"images": results}}
+            return {"ui": {"images": results}, "result": (images,)}
         
         except Exception as e:
             logger.error(f"Error occurred while saving images: {e}")
             # 返回空结果而不是抛出异常，避免中断ComfyUI工作流
-            return {"ui": {"images": []}}
+            return {"ui": {"images": []}, "result": (images,)}
 
 
 # ComfyUI节点映射
